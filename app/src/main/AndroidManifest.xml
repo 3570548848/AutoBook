@@ -22,7 +22,7 @@
         <service
             android:name=".service.PayNotificationListener"
             android:exported="false"
-            android:label="自动记账"
+            android:label="@string/app_name"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />

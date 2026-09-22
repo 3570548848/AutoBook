@@ -135,4 +135,124 @@ private fun SummaryCard(list: List<Transaction>) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 AmountBlock("支出", expense, MaterialTheme.colorScheme.error)
                 AmountBlock("收入", income, Color(0xFF2E7D32))
-    
+                AmountBlock("结余", income - expense, MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AmountBlock(label: String, value: Double, color: Color) {
+    Column {
+        Text(label, style = MaterialTheme.typography.labelSmall)
+        Text(
+            "¥%.2f".format(value),
+            color = color,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun TxnRow(t: Transaction, onDelete: () -> Unit) {
+    val fmt = remember { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
+
+    Card {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    t.merchant.ifBlank { t.source },
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    "${t.category} · ${t.source} · ${fmt.format(Date(t.timestamp))}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+            Text(
+                (if (t.isIncome) "+" else "-") + "%.2f".format(t.amount),
+                color = if (t.isIncome) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "删除",
+                    tint = MaterialTheme.colorScheme.outline
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (Double, Boolean, String, String) -> Unit
+) {
+    var amountText by remember { mutableStateOf("") }
+    var isIncome by remember { mutableStateOf(false) }
+    var merchant by remember { mutableStateOf("") }
+    var note by remember { mutableStateOf("") }
+    val amount = amountText.toDoubleOrNull()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("记一笔") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = !isIncome,
+                        onClick = { isIncome = false },
+                        label = { Text("支出") }
+                    )
+                    FilterChip(
+                        selected = isIncome,
+                        onClick = { isIncome = true },
+                        label = { Text("收入") }
+                    )
+                }
+                OutlinedTextField(
+                    value = amountText,
+                    onValueChange = { s -> amountText = s.filter { it.isDigit() || it == '.' } },
+                    label = { Text("金额") },
+                    singleLine = true,
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal
+                    )
+                )
+                OutlinedTextField(
+                    value = merchant,
+                    onValueChange = { merchant = it },
+                    label = { Text("商户 / 对方") },
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = note,
+                    onValueChange = { note = it },
+                    label = { Text("备注") },
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = amount != null && amount > 0,
+                onClick = { onConfirm(amount ?: 0.0, isIncome, merchant, note) }
+            ) { Text("保存") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        }
+    )
+}
